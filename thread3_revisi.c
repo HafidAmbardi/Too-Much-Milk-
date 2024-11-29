@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <stdatomic.h>
 #include <time.h>
 
 #define NUM_THREADS 4
 
-atomic_int counter = 0;
+int counter = 0;
 pthread_t threads[NUM_THREADS];
 int thread_ids[NUM_THREADS];
+pthread_mutex_t counter_lock; // Mutex untuk proteksi critical section
 
 void* critical_section(void* arg) {
     struct timespec start, end;
@@ -16,7 +16,9 @@ void* critical_section(void* arg) {
 
     // Simulate critical section work
     for (int i = 0; i < 1000000; i++) {
-        atomic_fetch_add(&counter, 1);
+        pthread_mutex_lock(&counter_lock); // Masuk critical section
+        counter++;                        // Update variabel counter
+        pthread_mutex_unlock(&counter_lock); // Keluar critical section
     }
 
     clock_gettime(CLOCK_MONOTONIC, &end);
@@ -29,6 +31,9 @@ void* critical_section(void* arg) {
 
 int main() {
     struct timespec start, end;
+
+    // Initialize mutex
+    pthread_mutex_init(&counter_lock, NULL);
 
     // Record start time
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -52,8 +57,11 @@ int main() {
                           (end.tv_nsec - start.tv_nsec) / 1e9;
 
     // Final counter value and performance analysis
-    printf("Final counter value: %d\n", atomic_load(&counter));
+    printf("Final counter value: %d\n", counter);
     printf("Elapsed time: %.6f seconds\n", elapsed_time);
+
+    // Destroy mutex
+    pthread_mutex_destroy(&counter_lock);
 
     return 0;
 }
