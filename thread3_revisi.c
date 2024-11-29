@@ -11,10 +11,12 @@ volatile bool noteC = false; // Represents "note left by C"
 volatile int milkAvailable = 0; // Represents the amount of milk available
 volatile int tooMuchMilkCounter = 0; // Counter for too much milk
 volatile int milkBoughtSuccessfullyCounter = 0; // Counter for successful milk purchases
+volatile int deadlockCounter = 0; // Counter for deadlocks
+#define MAXMILK 1000000 // Maximum number of milk to buy
 
 // Thread A function
 void *threadA(void *arg) {
-    while (milkBoughtSuccessfullyCounter <= 1000000) {
+    while (milkBoughtSuccessfullyCounter <= MAXMILK) {
         noteA = true; // Leave note A
 
         // Wait while either note B or note C is present
@@ -24,7 +26,6 @@ void *threadA(void *arg) {
 
         // Check if milk is not available, then buy milk
         if (milkAvailable == 0) {
-            // printf("Thread A: Buying milk\n");
             milkAvailable++;
             // Check if too much milk was bought
             if (milkAvailable > 1) {
@@ -43,7 +44,7 @@ void *threadA(void *arg) {
 
 // Thread B function
 void *threadB(void *arg) {
-    while (milkBoughtSuccessfullyCounter <= 1000000) {
+    while (milkBoughtSuccessfullyCounter <= MAXMILK) {
         noteB = true; // Leave note B
 
         // Wait while either note A or note C is present
@@ -53,7 +54,6 @@ void *threadB(void *arg) {
 
         // Check if milk is not available, then buy milk
         if (milkAvailable == 0) {
-            // printf("Thread B: Buying milk\n");
             milkAvailable++;
             // Check if too much milk was bought
             if (milkAvailable > 1) {
@@ -72,7 +72,7 @@ void *threadB(void *arg) {
 
 // Thread C function
 void *threadC(void *arg) {
-    while (milkBoughtSuccessfullyCounter <= 1000000) {
+    while (milkBoughtSuccessfullyCounter <= MAXMILK) {
         noteC = true; // Leave note C
 
         // Wait while either note A or note B is present
@@ -82,7 +82,6 @@ void *threadC(void *arg) {
 
         // Check if milk is not available, then buy milk
         if (milkAvailable == 0) {
-            // printf("Thread C: Buying milk\n");
             milkAvailable++;
             // Check if too much milk was bought
             if (milkAvailable > 1) {
@@ -101,15 +100,30 @@ void *threadC(void *arg) {
 
 // Function to reset milkAvailable to 0 after a short time
 void *resetMilk(void *arg) {
-    while (milkBoughtSuccessfullyCounter <= 1000000) {
+    while (milkBoughtSuccessfullyCounter <= MAXMILK) {
         usleep(50); // Sleep for 0.5 seconds
         milkAvailable = 0;
     }
     return NULL;
 }
 
+// Function to monitor and resolve deadlocks
+void *monitorDeadlock(void *arg) {
+    while (milkBoughtSuccessfullyCounter <= MAXMILK) {
+        if (noteA && noteB && noteC) {
+            // Deadlock detected
+            deadlockCounter++;
+            noteA = false;
+            noteB = false;
+            noteC = false;
+        }
+        usleep(10); // Sleep for a short time before checking again
+    }
+    return NULL;
+}
+
 int main() {
-    pthread_t t1, t2, t3, t4;
+    pthread_t t1, t2, t3, t4, t5;
 
     // Seed the random number generator
     srand(time(NULL));
@@ -119,16 +133,19 @@ int main() {
     pthread_create(&t2, NULL, threadB, NULL);
     pthread_create(&t3, NULL, threadC, NULL);
     pthread_create(&t4, NULL, resetMilk, NULL);
+    pthread_create(&t5, NULL, monitorDeadlock, NULL);
 
     // Wait for threads to finish
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     pthread_join(t3, NULL);
     pthread_join(t4, NULL);
+    pthread_join(t5, NULL);
 
     // Check final state
     printf("Milk bought successfully: %d times\n", milkBoughtSuccessfullyCounter);
     printf("Too much milk bought: %d times\n", tooMuchMilkCounter);
+    printf("Deadlocks resolved: %d times\n", deadlockCounter);
 
     return 0;
 }
