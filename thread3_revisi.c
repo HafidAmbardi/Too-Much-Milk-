@@ -1,67 +1,120 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <time.h>
 
-#define NUM_THREADS 4
+// Shared variables
+volatile bool noteA = false;     // Represents "note left by A"
+volatile bool noteB = false;     // Represents "note left by B"
+volatile bool noteC = false;     // Represents "note left by C"
+volatile bool milkAvailable = false; // Represents whether milk is available
 
-int counter = 0;
-pthread_t threads[NUM_THREADS];
-int thread_ids[NUM_THREADS];
-pthread_mutex_t counter_lock; // Mutex untuk proteksi critical section
+// Thread A function
+void* threadA(void* arg) {
+    noteA = true; // Leave note A
 
-void* critical_section(void* arg) {
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
-    // Simulate critical section work
-    for (int i = 0; i < 1000000; i++) {
-        pthread_mutex_lock(&counter_lock); // Masuk critical section
-        counter++;                        // Update variabel counter
-        pthread_mutex_unlock(&counter_lock); // Keluar critical section
+    // Wait while either note B or note C is present
+    while (noteB || noteC) {
+        // Do nothing
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    double elapsed_time = (end.tv_sec - start.tv_sec) +
-                          (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("Thread %d elapsed time: %.6f seconds\n", *(int*)arg, elapsed_time);
+    // Check if milk is not available, then buy milk
+    if (!milkAvailable) {
+        printf("Thread A: Buying milk\n");
+        milkAvailable = true;
+    }
 
+    noteA = false; // Remove note A
     return NULL;
 }
 
-int main() {
-    struct timespec start, end;
+// Thread B function
+void* threadB(void* arg) {
+    noteB = true; // Leave note B
 
-    // Initialize mutex
-    pthread_mutex_init(&counter_lock, NULL);
-
-    // Record start time
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
-    // Create threads
-    for (int i = 0; i < NUM_THREADS; i++) {
-        thread_ids[i] = i;
-        pthread_create(&threads[i], NULL, critical_section, &thread_ids[i]);
+    // Wait while either note A or note C is present
+    while (noteA || noteC) {
+        // Do nothing
     }
 
-    // Wait for threads to complete
-    for (int i = 0; i < NUM_THREADS; i++) {
+    // Check if milk is not available, then buy milk
+    if (!milkAvailable) {
+        printf("Thread B: Buying milk\n");
+        milkAvailable = true;
+    }
+
+    noteB = false; // Remove note B
+    return NULL;
+}
+
+// Thread C function
+void* threadC(void* arg) {
+    noteC = true; // Leave note C
+
+    // Wait while either note A or note B is present
+    while (noteA || noteB) {
+        // Do nothing
+    }
+
+    // Check if milk is not available, then buy milk
+    if (!milkAvailable) {
+        printf("Thread C: Buying milk\n");
+        milkAvailable = true;
+    }
+
+    noteC = false; // Remove note C
+    return NULL;
+}
+
+void run_test() {
+    pthread_t t1, t2, t3;
+    pthread_t threads[3];
+    void* (*thread_funcs[3])(void*) = {threadA, threadB, threadC};
+
+    // Reset shared variables
+    noteA = false;
+    noteB = false;
+    noteC = false;
+    milkAvailable = false;
+
+    // Shuffle the order of thread functions
+    for (int i = 0; i < 3; i++) {
+        int j = rand() % 3;
+        void* (*temp)(void*) = thread_funcs[i];
+        thread_funcs[i] = thread_funcs[j];
+        thread_funcs[j] = temp;
+    }
+
+    // Create threads with random delays
+    for (int i = 0; i < 3; i++) {
+        pthread_create(&threads[i], NULL, thread_funcs[i], NULL);
+        usleep(rand() % 1000); // Random delay
+    }
+
+    // Wait for threads to finish
+    for (int i = 0; i < 3; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    // Record end time
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    // Check final state
+    if (milkAvailable) {
+        printf("Milk has been bought successfully!\n");
+    } else {
+        printf("No milk was bought!\n");
+    }
+}
 
-    // Calculate elapsed time
-    double elapsed_time = (end.tv_sec - start.tv_sec) +
-                          (end.tv_nsec - start.tv_nsec) / 1e9;
+int main() {
+    srand(time(NULL)); // Seed the random number generator
 
-    // Final counter value and performance analysis
-    printf("Final counter value: %d\n", counter);
-    printf("Elapsed time: %.6f seconds\n", elapsed_time);
-
-    // Destroy mutex
-    pthread_mutex_destroy(&counter_lock);
+    int test_runs = 10; // Number of test runs
+    for (int i = 0; i < test_runs; i++) {
+        printf("Test run %d:\n", i + 1);
+        run_test();
+        printf("\n");
+    }
 
     return 0;
 }
