@@ -7,25 +7,31 @@ int noteB = 0;      // Catatan untuk thread B
 int success = 0;    // Hitungan keberhasilan
 
 void* personA(void* arg) {
+    printf("Thread A: Leaving note\n");
     noteA = 1;                // Tinggalkan catatan A
     while (noteB) {           // Tunggu jika ada catatan B
-        // Busy waiting
+        printf("Thread A: Waiting for noteB to be 0\n");
     }
     if (milk == 0) {          // Bagian kritis: cek dan beli susu
+        printf("Thread A: Buying milk\n");
         milk = 1;
     }
+    printf("Thread A: Removing note\n");
     noteA = 0;                // Hapus catatan A
     return NULL;
 }
 
 void* personB(void* arg) {
+    printf("Thread B: Leaving note\n");
     noteB = 1;                // Tinggalkan catatan B
     while (noteA) {           // Tunggu jika ada catatan A
-        // Busy waiting
+        printf("Thread B: Waiting for noteA to be 0\n");
     }
     if (milk == 0) {          // Bagian kritis: cek dan beli susu
+        printf("Thread B: Buying milk\n");
         milk = 1;
     }
+    printf("Thread B: Removing note\n");
     noteB = 0;                // Hapus catatan B
     return NULL;
 }
@@ -49,15 +55,15 @@ void test_case() {
     if (milk == 1) {
         success++;
     }
+    printf("Final milk count: %d\n", milk); // Cetak jumlah susu setelah pengujian
+    printf("\n");
 }
 
 int main() {
     int total_tests = 1000000;
 
     for (int i = 0; i < total_tests; i++) {
-        // Cetak angka tes saat ini dengan mengganti yang sebelumnya
-        printf("\rRunning test case: %d/%d", i + 1, total_tests);
-        fflush(stdout); // Pastikan output langsung muncul
+        printf("Running test case %d/%d\n", i + 1, total_tests);
         test_case();
     }
 
