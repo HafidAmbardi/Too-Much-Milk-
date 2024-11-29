@@ -98,7 +98,7 @@ void test_case() {
 }
 
 int main() {
-    int total_tests = 100;
+    int total_tests = 1000000;
 
     // Inisialisasi mutex
     pthread_mutex_init(&lock, NULL);
