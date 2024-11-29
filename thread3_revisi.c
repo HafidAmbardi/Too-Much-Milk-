@@ -13,6 +13,7 @@ volatile int tooMuchMilkCounter = 0; // Counter for too much milk
 volatile int milkBoughtSuccessfullyCounter = 0; // Counter for successful milk purchases
 volatile int deadlockCounter = 0; // Counter for deadlocks
 #define MAXMILK 1000000 // Maximum number of milk to buy
+#define PROGRESS_INTERVAL 10000 // Progress interval
 
 // Thread A function
 void *threadA(void *arg) {
@@ -33,6 +34,12 @@ void *threadA(void *arg) {
                 milkAvailable = 0;
             } else {
                 milkBoughtSuccessfullyCounter++;
+                if (milkBoughtSuccessfullyCounter % PROGRESS_INTERVAL == 0) {
+                    printf("Progress: %d milk bought successfully\n", milkBoughtSuccessfullyCounter);
+                    printf("Progress: %d too much milk bought\n", tooMuchMilkCounter);
+                    printf("Progress: %d deadlocks resolved\n\n", deadlockCounter);
+                    fflush(stdout);
+                }
             }
         }
 
@@ -61,6 +68,12 @@ void *threadB(void *arg) {
                 milkAvailable = 0;
             } else {
                 milkBoughtSuccessfullyCounter++;
+                if (milkBoughtSuccessfullyCounter % PROGRESS_INTERVAL == 0) {
+                    printf("Progress: %d milk bought successfully\n", milkBoughtSuccessfullyCounter);
+                    printf("Progress: %d too much milk bought\n", tooMuchMilkCounter);
+                    printf("Progress: %d deadlocks resolved\n\n", deadlockCounter);
+                    fflush(stdout);
+                }
             }
         }
 
@@ -89,6 +102,12 @@ void *threadC(void *arg) {
                 milkAvailable = 0;
             } else {
                 milkBoughtSuccessfullyCounter++;
+                if (milkBoughtSuccessfullyCounter % PROGRESS_INTERVAL == 0) {
+                    printf("Progress: %d milk bought successfully\n", milkBoughtSuccessfullyCounter);
+                    printf("Progress: %d too much milk bought\n", tooMuchMilkCounter);
+                    printf("Progress: %d deadlocks resolved\n\n", deadlockCounter);
+                    fflush(stdout);
+                }
             }
         }
 
