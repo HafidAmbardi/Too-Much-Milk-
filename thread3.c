@@ -1,62 +1,26 @@
-#include <stdio.h>
 #include <pthread.h>
-#include <stdatomic.h>
+#include <stdio.h>
 
 #define NUM_THREADS 3
-#define ITERATIONS 10
+#define ITERATIONS 1000000
 
-// Shared variables for the locking algorithm
-volatile int turn[NUM_THREADS];
-volatile int flag[NUM_THREADS];
-
-// Shared resource
+pthread_mutex_t mutex;
 volatile int counter = 0;
 
-// Function to initialize the locking mechanism
-void init_lock() {
-    for (int i = 0; i < NUM_THREADS; i++) {
-        flag[i] = 0;
-        turn[i] = 0;
-    }
-}
-
-// Lock function for a specific thread
-void lock(int thread_id) {
-    flag[thread_id] = 1;
-    for (int other = 0; other < NUM_THREADS; other++) {
-        if (other == thread_id) continue;
-
-        // Set turn to the other thread
-        turn[thread_id] = other;
-
-        // Wait while the other thread wants to enter and it's their turn
-        while (flag[other] && turn[thread_id] == other) {
-            // Busy-wait
-        }
-    }
-}
-
-// Unlock function for a specific thread
-void unlock(int thread_id) {
-    flag[thread_id] = 0;
-}
-
-// Critical section function
 void *critical_section(void *arg) {
     int thread_id = *(int *)arg;
 
     for (int i = 0; i < ITERATIONS; i++) {
-        lock(thread_id);
+        pthread_mutex_lock(&mutex); // Memasuki critical section
 
-        // Start of critical section
         printf("Thread %d: entering critical section\n", thread_id);
         counter++;
         printf("Thread %d: counter = %d\n", thread_id, counter);
         printf("Thread %d: leaving critical section\n", thread_id);
-        // End of critical section
 
-        unlock(thread_id);
+        pthread_mutex_unlock(&mutex); // Keluar dari critical section
     }
+
     return NULL;
 }
 
@@ -64,20 +28,20 @@ int main() {
     pthread_t threads[NUM_THREADS];
     int thread_ids[NUM_THREADS];
 
-    init_lock();
+    pthread_mutex_init(&mutex, NULL);
 
-    // Create threads
     for (int i = 0; i < NUM_THREADS; i++) {
         thread_ids[i] = i;
         pthread_create(&threads[i], NULL, critical_section, &thread_ids[i]);
     }
 
-    // Wait for threads to complete
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    printf("Final counter value: %d\n", counter);
+    pthread_mutex_destroy(&mutex);
+
+    printf("Final counter value: %d (Expected: %d)\n", counter, NUM_THREADS * ITERATIONS);
 
     return 0;
 }
