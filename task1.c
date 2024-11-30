@@ -4,27 +4,24 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// Shared variables
-volatile bool noteA = false; // Represents "note left by A"
-volatile bool noteB = false; // Represents "note left by B"
-volatile int milkAvailable = 0; // Represents the amount of milk available
-volatile int milkBoughtSuccessfullyCounter = 0; // Counter for successful milk purchases
-volatile int tooMuchMilkCounter = 0; // Counter for too much milk
-volatile int deadlockCounter = 0; // Counter for deadlocks
-#define MAXMILK 1000000 // Maximum number of milk to buy
-#define PROGRESS_INTERVAL 10000 // Progress interval
+volatile bool noteA = false; 
+volatile bool noteB = false; 
+volatile int milkAvailable = 0; 
+volatile int milkBoughtSuccessfullyCounter = 0; 
+volatile int tooMuchMilkCounter = 0; 
+volatile int deadlockCounter = 0; 
+#define MAXMILK 100000 
+#define PROGRESS_INTERVAL 10000 
 
-// Thread A function
+
 void *threadA(void *arg) {
     while (milkBoughtSuccessfullyCounter < MAXMILK) {
-        noteA = true; // Leave note A
+        noteA = true; 
 
-        // Wait while note B is present
         while (noteB) {
             // Do nothing, wait for noteB to clear
         }
 
-        // Check if milk is not available, then buy milk
         if (milkAvailable == 0) {
             milkAvailable++;
             if (milkAvailable > 1) {
@@ -41,23 +38,22 @@ void *threadA(void *arg) {
             }
         }
 
-        noteA = false; // Remove note A
-        usleep(rand() % 10); // Sleep for a random short time
+        noteA = false; 
+        usleep(rand() % 10); 
     }
     return NULL;
 }
 
-// Thread B function
+
 void *threadB(void *arg) {
     while (milkBoughtSuccessfullyCounter < MAXMILK) {
-        noteB = true; // Leave note B
+        noteB = true; 
 
-        // Wait while note A is present
+        
         while (noteA) {
             // Do nothing, wait for noteA to clear
         }
 
-        // Check if milk is not available, then buy milk
         if (milkAvailable == 0) {
             milkAvailable++;
             if (milkAvailable > 1) {
@@ -74,31 +70,29 @@ void *threadB(void *arg) {
             }
         }
 
-        noteB = false; // Remove note B
-        usleep(rand() % 10); // Sleep for a random short time
+        noteB = false; 
+        usleep(rand() % 10); 
     }
     return NULL;
 }
 
-// Function to reset milkAvailable to 0 after a short time (simulate milk consumption)
+
 void *resetMilk(void *arg) {
     while (milkBoughtSuccessfullyCounter < MAXMILK) {
-        usleep(50); // Sleep for 0.05 seconds
+        usleep(50); 
         milkAvailable = 0;
     }
     return NULL;
 }
 
-// Function to monitor and resolve deadlocks
 void *monitorDeadlock(void *arg) {
     while (milkBoughtSuccessfullyCounter < MAXMILK) {
         if (noteA && noteB) {
-            // Deadlock detected
             deadlockCounter++;
             noteA = false;
             noteB = false;
         }
-        usleep(10); // Sleep for a short time before checking again
+        usleep(10); 
     }
     return NULL;
 }
@@ -106,22 +100,18 @@ void *monitorDeadlock(void *arg) {
 int main() {
     pthread_t t1, t2, t3, t4;
 
-    // Seed the random number generator
     srand(time(NULL));
 
-    // Create threads
     pthread_create(&t1, NULL, threadA, NULL);
     pthread_create(&t2, NULL, threadB, NULL);
     pthread_create(&t3, NULL, resetMilk, NULL);
     pthread_create(&t4, NULL, monitorDeadlock, NULL);
 
-    // Wait for threads to finish
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     pthread_join(t3, NULL);
     pthread_join(t4, NULL);
 
-    // Check final state
     printf("\nMilk bought successfully: %d times\n", milkBoughtSuccessfullyCounter);
     printf("Too much milk bought: %d times\n", tooMuchMilkCounter);
     printf("Deadlocks resolved: %d times\n", deadlockCounter);
