@@ -10,8 +10,8 @@ volatile int milkAvailable = 0;
 volatile int milkBoughtSuccessfullyCounter = 0; 
 volatile int tooMuchMilkCounter = 0; 
 volatile int deadlockCounter = 0; 
-#define MAXMILK 100000 
-#define PROGRESS_INTERVAL 10000 
+#define MAXMILK 1000000 
+#define PROGRESS_INTERVAL 100000 
 
 
 void *threadA(void *arg) {
@@ -49,7 +49,6 @@ void *threadB(void *arg) {
     while (milkBoughtSuccessfullyCounter < MAXMILK) {
         noteB = true; 
 
-        
         while (noteA) {
             // Do nothing, wait for noteA to clear
         }
@@ -69,7 +68,6 @@ void *threadB(void *arg) {
                 }
             }
         }
-
         noteB = false; 
         usleep(rand() % 10); 
     }
